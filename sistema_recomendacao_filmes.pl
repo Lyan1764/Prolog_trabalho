@@ -1,4 +1,3 @@
-
 % Fatos: filme(Titulo, Genero, Diretor, Elenco, Ano, Duracao, Idioma, Pais, IMDb, Classificacao)
 filme('Matrix', ficcao, 'Wachowski', ['Keanu Reeves', 'Laurence Fishburne'], 1999, 141, frances, eua, 9.4, 18).
 filme('Interestelar', ficcao, 'Christopher Nolan', ['Matthew McConaughey', 'Anne Hathaway'], 2014, 171, japones, eua, 9.2, 14).
@@ -8,38 +7,64 @@ filme('Coringa', drama, 'Todd Phillips', ['Joaquin Phoenix', 'Robert De Niro'], 
 filme('Vingadores: Ultimato', acao, 'Anthony e Joe Russo', ['Robert Downey Jr.', 'Chris Evans'], 2019, 138, coreano, eua, 8.5, 10).
 filme('La La Land', romance, 'Damien Chazelle', ['Ryan Gosling', 'Emma Stone'], 2016, 177, espanhol, eua, 7.0, 18).
 
-% Declarar como dinâmico:
 :- dynamic assistido/2.
 
-% Filmes assistidos
 assistido(usuario1, 'Matrix').
 assistido(usuario1, 'Titanic').
 
-% Regra para recomendar com score
-recomendar_filme(Usuario, Genero, NotaMinima, ClassifMax, Filme, Score) :-
-    filme(Filme, GeneroF, _, Elenco, _, _, _, _, IMDb, Classificacao),
-    not(assistido(Usuario, Filme)),
-    Classificacao =< ClassifMax,
+% Regra principal melhorada
+recomendar_filme(Usuario, FilmeBase, NotaMinima, ClassifMax, Recomendacao, Score) :-
+    filme(FilmeBase, Genero, Diretor, ElencoBase, _, _, _, _, _, _),
+    filme(Recomendacao, G, D, E, _, _, _, _, IMDb, Classif),
+    not(assistido(Usuario, Recomendacao)),
+    Classif =< ClassifMax,
     IMDb >= NotaMinima,
-    score_filme(Genero, GeneroF, Elenco, Score).
+    score_filme(Genero, G, Diretor, D, ElencoBase, E, Score).
 
-% Score com pesos: +2 para mesmo gênero, +1 para cada ator em comum
-score_filme(GeneroDesejado, GeneroFilme, Elenco, Score) :-
+% Sistema de pontuação completo
+score_filme(GeneroDesejado, GeneroFilme, DiretorDesejado, DiretorFilme, ElencoBase, ElencoFilme, Score) :-
     genero_score(GeneroDesejado, GeneroFilme, ScoreGenero),
-    ator_score(Elenco, ScoreAtor),
-    Score is ScoreGenero + ScoreAtor.
+    diretor_score(DiretorDesejado, DiretorFilme, ScoreDiretor),
+    ator_score(ElencoBase, ElencoFilme, ScoreAtor),
+    imdb_score(8.0, IMDb, ScoreIMDb), % Exemplo: +1 se IMDb > 8.0
+    Score is ScoreGenero + ScoreDiretor + ScoreAtor + ScoreIMDb.
 
-genero_score(G, G, 2).
+% Critérios de pontuação
+genero_score(G, G, 2) :- !.
 genero_score(_, _, 0).
 
-ator_score([], 0).
-ator_score([_|T], Score) :-
-    ator_score(T, Score).
+diretor_score(D, D, 1) :- !.
+diretor_score(_, _, 0).
 
-% Explicação textual
-explica_recomendacao(Filme, GeneroUsuario, Explicacao) :-
-    filme(Filme, GeneroFilme, _, Elenco, _, _, _, _, _, _),
-    genero_score(GeneroUsuario, GeneroFilme, P1),
-    ator_score(Elenco, P2),
-    Total is P1 + P2,
-    format(atom(Explicacao), 'Filme recomendado por ter ~w pontos: ~w por gênero e ~w por elenco.', [Total, P1, P2]).
+ator_score(ElencoBase, ElencoFilme, Score) :-
+    intersection(ElencoBase, ElencoFilme, AtoresComuns),
+    length(AtoresComuns, Score).
+
+imdb_score(Corte, IMDb, 1) :- IMDb >= Corte, !.
+imdb_score(_, _, 0).
+
+% Explicação textual completa
+explica_recomendacao(Filme, FilmeBase, Explicacao) :-
+    filme(FilmeBase, Genero, Diretor, ElencoBase, _, _, _, _, _, _),
+    filme(Filme, GeneroFilme, DiretorFilme, ElencoFilme, _, _, _, _, IMDb, _),
+    genero_score(Genero, GeneroFilme, P1),
+    diretor_score(Diretor, DiretorFilme, P2),
+    ator_score(ElencoBase, ElencoFilme, P3),
+    imdb_score(8.0, IMDb, P4),
+    Total is P1 + P2 + P3 + P4,
+    format(atom(Explicacao), 
+    'Recomendação (~w pts): ~w por gênero, ~w por diretor, ~w por atores em comum, ~w por nota IMDb alta.',
+    [Total, P1, P2, P3, P4]).
+
+% Regra para obter recomendações ordenadas
+recomendacoes_ordenadas(Usuario, FilmeBase, NotaMinima, ClassifMax, Recomendacoes) :-
+    findall(Score-Filme, 
+            recomendar_filme(Usuario, FilmeBase, NotaMinima, ClassifMax, Filme, Score), 
+            ListaCrua),
+    sort(1, @>=, ListaCrua, ListaOrdenada),
+    extract_filmes(ListaOrdenada, Recomendacoes).
+    
+    % Auxiliar para extrair apenas os nomes dos filmes na ordem correta
+extract_filmes([], []).
+extract_filmes([_-Filme|Resto], [Filme|Filmes]) :-
+    extract_filmes(Resto, Filmes).
