@@ -8,6 +8,9 @@ filme('Coringa', drama, 'Todd Phillips', ['Joaquin Phoenix', 'Robert De Niro'], 
 filme('Vingadores: Ultimato', acao, 'Anthony e Joe Russo', ['Robert Downey Jr.', 'Chris Evans'], 2019, 138, coreano, eua, 8.5, 10).
 filme('La La Land', romance, 'Damien Chazelle', ['Ryan Gosling', 'Emma Stone'], 2016, 177, espanhol, eua, 7.0, 18).
 
+% Declarar como dinâmico:
+:- dynamic assistido/2.
+
 % Filmes assistidos
 assistido(usuario1, 'Matrix').
 assistido(usuario1, 'Titanic').
