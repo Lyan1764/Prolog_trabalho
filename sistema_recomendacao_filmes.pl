@@ -12,21 +12,21 @@ filme('La La Land', romance, 'Damien Chazelle', ['Ryan Gosling', 'Emma Stone'], 
 assistido(usuario1, 'Matrix').
 assistido(usuario1, 'Titanic').
 
-% Regra principal melhorada
+% Regra principal
 recomendar_filme(Usuario, FilmeBase, NotaMinima, ClassifMax, Recomendacao, Score) :-
     filme(FilmeBase, Genero, Diretor, ElencoBase, _, _, _, _, _, _),
     filme(Recomendacao, G, D, E, _, _, _, _, IMDb, Classif),
     not(assistido(Usuario, Recomendacao)),
     Classif =< ClassifMax,
     IMDb >= NotaMinima,
-    score_filme(Genero, G, Diretor, D, ElencoBase, E, Score).
+    score_filme(Genero, G, Diretor, D, ElencoBase, E, IMDb, Score).
 
 % Sistema de pontuação completo
-score_filme(GeneroDesejado, GeneroFilme, DiretorDesejado, DiretorFilme, ElencoBase, ElencoFilme, Score) :-
+score_filme(GeneroDesejado, GeneroFilme, DiretorDesejado, DiretorFilme, ElencoBase, ElencoFilme, IMDb, Score) :-
     genero_score(GeneroDesejado, GeneroFilme, ScoreGenero),
     diretor_score(DiretorDesejado, DiretorFilme, ScoreDiretor),
     ator_score(ElencoBase, ElencoFilme, ScoreAtor),
-    imdb_score(8.0, IMDb, ScoreIMDb), % Exemplo: +1 se IMDb > 8.0
+    imdb_score(IMDb, ScoreIMDb),
     Score is ScoreGenero + ScoreDiretor + ScoreAtor + ScoreIMDb.
 
 % Critérios de pontuação
@@ -40,31 +40,27 @@ ator_score(ElencoBase, ElencoFilme, Score) :-
     intersection(ElencoBase, ElencoFilme, AtoresComuns),
     length(AtoresComuns, Score).
 
-imdb_score(Corte, IMDb, 1) :- IMDb >= Corte, !.
-imdb_score(_, _, 0).
+imdb_score(IMDb, Score) :-
+    (IMDb >= 8.0 -> Score = 1 ; Score = 0).
 
-% Explicação textual completa
+% Recomendações ordenadas
+recomendacoes_ordenadas(Usuario, FilmeBase, NotaMinima, ClassifMax, Recomendacoes) :-
+    findall(Score-Filme, 
+            recomendar_filme(Usuario, FilmeBase, NotaMinima, ClassifMax, Filme, Score),
+            Lista),
+    keysort(Lista, Ordenada),
+    reverse(Ordenada, OrdenadaDesc),
+    pairs_values(OrdenadaDesc, Recomendacoes).
+
+% Explicação textual
 explica_recomendacao(Filme, FilmeBase, Explicacao) :-
     filme(FilmeBase, Genero, Diretor, ElencoBase, _, _, _, _, _, _),
     filme(Filme, GeneroFilme, DiretorFilme, ElencoFilme, _, _, _, _, IMDb, _),
     genero_score(Genero, GeneroFilme, P1),
     diretor_score(Diretor, DiretorFilme, P2),
     ator_score(ElencoBase, ElencoFilme, P3),
-    imdb_score(8.0, IMDb, P4),
+    imdb_score(IMDb, P4),
     Total is P1 + P2 + P3 + P4,
     format(atom(Explicacao), 
-    'Recomendação (~w pts): ~w por gênero, ~w por diretor, ~w por atores em comum, ~w por nota IMDb alta.',
-    [Total, P1, P2, P3, P4]).
-
-% Regra para obter recomendações ordenadas
-recomendacoes_ordenadas(Usuario, FilmeBase, NotaMinima, ClassifMax, Recomendacoes) :-
-    findall(Score-Filme, 
-            recomendar_filme(Usuario, FilmeBase, NotaMinima, ClassifMax, Filme, Score), 
-            ListaCrua),
-    sort(1, @>=, ListaCrua, ListaOrdenada),
-    extract_filmes(ListaOrdenada, Recomendacoes).
-    
-    % Auxiliar para extrair apenas os nomes dos filmes na ordem correta
-extract_filmes([], []).
-extract_filmes([_-Filme|Resto], [Filme|Filmes]) :-
-    extract_filmes(Resto, Filmes).
+           'Recomendação (~w pts): ~w por gênero, ~w por diretor, ~w por atores, ~w por IMDb > 8.0',
+           [Total, P1, P2, P3, P4]).
