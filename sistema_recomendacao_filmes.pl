@@ -6,6 +6,10 @@ filme('Titanic', romance, 'James Cameron', ['Leonardo DiCaprio', 'Kate Winslet']
 filme('Coringa', drama, 'Todd Phillips', ['Joaquin Phoenix', 'Robert De Niro'], 2019, 163, ingles, eua, 9.0, 18).
 filme('Vingadores: Ultimato', acao, 'Anthony e Joe Russo', ['Robert Downey Jr.', 'Chris Evans'], 2019, 138, coreano, eua, 8.5, 10).
 filme('La La Land', romance, 'Damien Chazelle', ['Ryan Gosling', 'Emma Stone'], 2016, 177, espanhol, eua, 7.0, 18).
+filme('John Wick', acao, 'Chad Stahelski', ['Keanu Reeves'], 2014, 101, ingles, eua, 7.4, 18).
+filme('Gente Grande 1', comedia, 'Dennis Dugan',['Adam Sandler', 'Kevin James', 'Chris Rock', 'David Spade', 'Rob Schneider'],2010, 102, ingles, eua, 6.0, 14).
+filme('Gente Grande 2', comedia, 'Dennis Dugan',['Adam Sandler', 'Kevin James', 'Chris Rock', 'David Spade', 'Rob Schneider'],2013, 101, ingles, eua, 5.4, 12).
+
 
 :- dynamic assistido/2.
 
@@ -62,5 +66,5 @@ explica_recomendacao(Filme, FilmeBase, Explicacao) :-
     imdb_score(IMDb, P4),
     Total is P1 + P2 + P3 + P4,
     format(atom(Explicacao), 
-           'Recomendação (~w pts): ~w por gênero, ~w por diretor, ~w por atores, ~w por IMDb > 8.0',
+           'Recomendacao (~w pts): ~w por genero, ~w por diretor, ~w por atores, ~w por IMDb > 8.0',
            [Total, P1, P2, P3, P4]).
